@@ -1,598 +1,715 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontend Slides Workflow Demo</title>
+  <title>Mini Night Rush - 桌面赛车</title>
   <style>
     :root {
-      --bg: radial-gradient(circle at 18% 12%, #1f375f 0, #0e1328 44%, #070911 100%);
-      --panel: linear-gradient(155deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.05));
-      --text: #eef3ff;
-      --muted: #b9c5ef;
-      --accent: #72e8ff;
-      --accent-2: #b88cff;
-      --line: rgba(255, 255, 255, 0.17);
-      --shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
-      --slide-padding: clamp(28px, 4.3vw, 64px);
+      color-scheme: dark;
+      --bg: #02030a;
+      --panel: rgba(15, 17, 33, 0.8);
+      --line: rgba(180, 225, 255, 0.28);
+      --accent: #3df2ff;
+      --warn: #ff4c7b;
     }
 
     * { box-sizing: border-box; }
 
-    html,
     body {
       margin: 0;
-      width: 100%;
-      height: 100%;
-      background: #02040a;
-      color: var(--text);
-      font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      overflow: hidden;
-    }
-
-    .deck {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      isolation: isolate;
-    }
-
-    .slide {
-      position: absolute;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      padding: var(--slide-padding);
+      min-height: 100vh;
+      min-height: 100dvh;
       display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: clamp(18px, 2.2vw, 30px);
-      background: var(--bg);
-      opacity: 0;
-      transform: scale(0.985);
-      pointer-events: none;
-      transition: opacity 240ms ease, transform 260ms ease;
+      place-items: center;
+      background: radial-gradient(circle at 15% 10%, #1a3d89, #090b1b 42%, #010207);
+      color: #ebf1ff;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       overflow: hidden;
     }
 
-    .slide.active {
-      opacity: 1;
-      transform: scale(1);
-      pointer-events: auto;
+    .wrap {
+      width: min(1380px, 96vw);
+      display: grid;
+      gap: 14px;
     }
 
-    .grain {
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.06) 0.6px, transparent 0.6px);
-      background-size: 3px 3px;
-      mix-blend-mode: soft-light;
-      pointer-events: none;
-      opacity: 0.3;
-    }
-
-    .halo {
-      position: absolute;
-      border-radius: 999px;
-      filter: blur(70px);
-      z-index: -1;
-      pointer-events: none;
-    }
-
-    .halo.one {
-      width: 35vw;
-      aspect-ratio: 1;
-      top: -10vw;
-      right: -4vw;
-      background: rgba(114, 232, 255, 0.32);
-    }
-
-    .halo.two {
-      width: 28vw;
-      aspect-ratio: 1;
-      bottom: -11vw;
-      left: -6vw;
-      background: rgba(184, 140, 255, 0.25);
-    }
-
-    .topline {
+    .hud {
       display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
       justify-content: space-between;
       align-items: center;
-      font-size: clamp(13px, 1.2vw, 16px);
-      color: var(--muted);
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      gap: 16px;
-    }
-
-    .chip {
       border: 1px solid var(--line);
-      background: rgba(8, 12, 25, 0.38);
-      padding: 0.45rem 0.8rem;
-      border-radius: 999px;
-      font-size: 0.72em;
-      font-weight: 700;
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
     }
 
-    .content {
-      min-height: 0;
+    .hud strong { color: var(--accent); }
+    .tips { color: #adc0ef; font-size: 13px; }
+
+    .stage {
       display: grid;
-      align-content: center;
-      gap: clamp(14px, 2vw, 24px);
-    }
-
-    .title {
-      margin: 0;
-      line-height: 1.04;
-      font-size: clamp(2rem, 5vw, 4.5rem);
-      letter-spacing: -0.03em;
-      max-width: 15ch;
-      text-wrap: balance;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      font-size: clamp(1rem, 1.7vw, 1.4rem);
-      max-width: 62ch;
-      line-height: 1.45;
+      grid-template-columns: minmax(720px, 1fr) 320px;
+      gap: 12px;
+      align-items: stretch;
     }
 
     .panel {
+      border-radius: 16px;
       border: 1px solid var(--line);
-      background: var(--panel);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
-      overflow: hidden;
-    }
-
-    .list {
-      margin: 0;
-      padding: clamp(18px, 2.5vw, 34px);
+      background: rgba(7, 10, 21, 0.82);
       display: grid;
-      gap: clamp(10px, 1.2vw, 15px);
-    }
-
-    .list li {
-      list-style: none;
-      position: relative;
-      padding-left: 1.25em;
-      line-height: 1.34;
-      font-size: clamp(1rem, 1.7vw, 1.48rem);
-      color: var(--text);
-    }
-
-    .list li::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0.55em;
-      width: 0.5em;
-      height: 0.5em;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 0 0 2px rgba(114, 232, 255, 0.2);
-    }
-
-    .grid {
-      display: grid;
-      gap: clamp(14px, 1.5vw, 20px);
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .card {
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: rgba(12, 17, 35, 0.56);
-      padding: clamp(16px, 2vw, 26px);
-      display: grid;
+      grid-template-rows: auto auto 1fr;
       gap: 10px;
+      padding: 10px;
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.32);
     }
 
-    .card h3 {
+    .panel h3 {
       margin: 0;
-      font-size: clamp(1.1rem, 2vw, 1.6rem);
+      font-size: 14px;
+      letter-spacing: 0.03em;
+      color: #c8d4f9;
     }
 
-    .card p {
+    .preview-note {
+      font-size: 12px;
+      color: #95a7d6;
+      line-height: 1.45;
+    }
+
+    .track-preview {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(132, 169, 236, 0.35);
+      background: #05070f;
+      min-height: 210px;
+    }
+
+    .event-list {
       margin: 0;
-      color: var(--muted);
-      line-height: 1.4;
-      font-size: clamp(0.95rem, 1.2vw, 1.1rem);
-    }
-
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--muted);
-      font-size: clamp(0.8rem, 1vw, 1rem);
-      border-top: 1px solid var(--line);
-      padding-top: 12px;
-      min-height: 32px;
-    }
-
-    .split-note {
-      padding: 10px 0 0;
-      font-size: 0.9em;
-      color: var(--muted);
-    }
-
-    .controls {
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      z-index: 20;
-      background: rgba(9, 12, 24, 0.72);
-      border: 1px solid var(--line);
-      border-radius: 999px;
       padding: 8px;
-      backdrop-filter: blur(6px);
-    }
-
-    .controls button {
-      border: 0;
-      width: 38px;
-      height: 38px;
-      border-radius: 999px;
-      font-size: 1rem;
-      font-weight: 800;
-      color: var(--text);
-      background: linear-gradient(140deg, rgba(114, 232, 255, 0.3), rgba(184, 140, 255, 0.35));
-      cursor: pointer;
-    }
-
-    .controls span {
-      min-width: 68px;
-      text-align: center;
-      font-weight: 700;
-      color: var(--muted);
-      font-size: 0.86rem;
-      letter-spacing: 0.02em;
-    }
-
-    .auto-split {
-      min-height: 0;
-      overflow: hidden;
+      border: 1px solid rgba(132, 169, 236, 0.25);
+      border-radius: 10px;
+      background: rgba(10, 14, 29, 0.7);
+      color: #cad7ff;
+      font-size: 12px;
+      line-height: 1.4;
+      list-style: none;
       display: grid;
-      gap: 12px;
+      gap: 6px;
       align-content: start;
     }
 
-    @media (max-width: 860px) {
-      .grid { grid-template-columns: 1fr; }
-      .subtitle { max-width: none; }
-      .controls { left: 18px; right: 18px; justify-content: center; }
+    .event-list li {
+      border-left: 2px solid rgba(98, 232, 255, 0.5);
+      padding-left: 8px;
+      opacity: 0.95;
+    }
+
+    .game-canvas {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #03040a;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.58), inset 0 0 80px rgba(38, 205, 255, 0.08);
+    }
+
+    .career {
+      border: 1px solid rgba(132, 169, 236, 0.25);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(10, 14, 29, 0.72);
+      display: grid;
+      gap: 8px;
+    }
+
+    .career-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      font-size: 12px;
+      color: #d7e3ff;
+    }
+
+    .career-grid b {
+      color: #70ecff;
+      font-weight: 700;
+    }
+
+    .career button {
+      width: 100%;
+      font-size: 12px;
+      padding: 6px 8px;
+    }
+
+    @media (max-width: 1100px) {
+      .stage {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .buttons {
+      display: inline-flex;
+      gap: 8px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #0d1230;
+      color: #ebf1ff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.active {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
     }
   </style>
 </head>
 <body>
-  <main id="deck" class="deck" aria-live="polite"></main>
-  <div class="controls">
-    <button id="prev" aria-label="Previous slide">←</button>
-    <span id="counter">1 / 1</span>
-    <button id="next" aria-label="Next slide">→</button>
+  <div class="wrap">
+    <div class="hud">
+      <div>
+        <strong>Mini Night Rush</strong> · 简约版街头赛车（单人/双人同屏）
+      </div>
+      <div class="buttons">
+        <button id="onePlayer" class="active">单人模式</button>
+        <button id="twoPlayer">双人模式</button>
+      </div>
+      <div class="tips">P1: WASD / Shift 氮气 · P2: ↑↓←→ / Enter 氮气 · R 重开</div>
+    </div>
+    <div class="stage">
+      <canvas id="game" class="game-canvas" width="1280" height="720"></canvas>
+      <aside class="panel">
+        <h3>右侧实时预览</h3>
+        <div class="preview-note">显示赛道进度预览（终点线在顶部）与最近赛况提示。</div>
+        <canvas id="preview" class="track-preview" width="300" height="260"></canvas>
+        <ul id="events" class="event-list"></ul>
+        <section class="career">
+          <h3>生涯进度（自动保存）</h3>
+          <div id="careerStats" class="career-grid"></div>
+          <button id="resetProgress">重置生涯进度</button>
+        </section>
+      </aside>
+    </div>
   </div>
 
   <script>
-    const outline = [
-      {
-        type: "title",
-        kicker: "Frontend Slides Workflow",
-        title: "Reusable, single-file presentations for this repository",
-        subtitle: "This deck is generated from a small outline object and rendered into polished fullscreen slides with automatic long-content splitting.",
-        footer: "Demo • April 2026"
-      },
-      {
-        type: "agenda",
-        kicker: "Agenda",
-        title: "What this workflow gives you",
-        items: [
-          "Author content in one lightweight structure.",
-          "Generate one standalone HTML file with inline CSS and JavaScript.",
-          "Keep every slide fullscreen with no internal scrolling.",
-          "Split long sections into additional slides automatically.",
-          "Reuse the same style and workflow for future decks."
-        ]
-      },
-      {
-        type: "content",
-        kicker: "Workflow",
-        title: "Authoring flow",
-        subtitle: "Move from message to slides without building tools or bundling assets.",
-        cards: [
-          {
-            title: "1) Outline",
-            text: "Capture intent with short bullets, sections, and supporting notes."
-          },
-          {
-            title: "2) Structure",
-            text: "Map sections into title, list, and card-based slide types."
-          },
-          {
-            title: "3) Compose",
-            text: "Render a single HTML file using inline style and behavior only."
-          },
-          {
-            title: "4) Validate",
-            text: "Confirm no external dependencies, no overflow, and keyboard navigation works."
-          }
-        ]
-      },
-      {
-        type: "content",
-        kicker: "Design principles",
-        title: "Distinctive and practical",
-        subtitle: "A restrained sci-fi style with layered gradients, glass-like panels, and strong typography keeps decks modern without feeling generic.",
-        items: [
-          "Readable from a distance via large type scales and high contrast.",
-          "Consistent layout primitives: topline, content block, footer.",
-          "Subtle motion and texture for depth without distraction.",
-          "Flexible containers for lists, cards, and narrative paragraphs."
-        ]
-      },
-      {
-        type: "long-list",
-        kicker: "Auto split demonstration",
-        title: "A long content section is split into multiple slides",
-        intro: "The items below intentionally exceed one slide. The script paginates them across continuation slides while preserving style and readability.",
-        items: [
-          "Define a clear story spine before touching layout.",
-          "Limit each bullet to one concise idea.",
-          "Use strong action verbs in headings and bullets.",
-          "Keep visual motifs consistent across the entire deck.",
-          "Balance novelty with predictable navigation cues.",
-          "Prefer short speaker notes over dense slide text.",
-          "Use contrast to direct attention intentionally.",
-          "Anchor each section with a memorable transition phrase.",
-          "Check paragraph line lengths for projection readability.",
-          "Ensure all interactions work from keyboard input.",
-          "Provide continuation markers on split slides.",
-          "Rehearse pacing against expected meeting duration.",
-          "Validate color choices on dim projectors.",
-          "Remove decorative elements that compete with content.",
-          "Double-check terminology consistency across sections.",
-          "Keep examples realistic and immediately relevant.",
-          "Call out decisions, not just observations.",
-          "End with clear next actions and ownership.",
-          "Version decks in-repo so future updates stay auditable.",
-          "Archive old decks while preserving shared templates."
-        ]
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const previewCanvas = document.getElementById("preview");
+    const pctx = previewCanvas.getContext("2d");
+    const eventsEl = document.getElementById("events");
+    const careerStatsEl = document.getElementById("careerStats");
+    const resetProgressBtn = document.getElementById("resetProgress");
+    const PROGRESS_KEY = "mini-night-rush-progress-v1";
+
+    const keyMap = {
+      p1: { left: "KeyA", right: "KeyD", gas: "KeyW", brake: "KeyS", boost: "ShiftLeft" },
+      p2: { left: "ArrowLeft", right: "ArrowRight", gas: "ArrowUp", brake: "ArrowDown", boost: "Enter" }
+    };
+
+    const road = { width: 530, laneCount: 3, baseSpeed: 190, maxSpeed: 420, finishDistance: 3000 };
+
+    const state = {
+      mode: 1,
+      running: true,
+      elapsed: 0,
+      curvePhase: 0,
+      roadOffset: 0,
+      resultAnnounced: false,
+      traffic: [],
+      sparks: [],
+      events: [],
+      stars: Array.from({ length: 48 }, () => ({ x: Math.random() * canvas.width, y: Math.random() * 220, twinkle: Math.random() * Math.PI * 2 })),
+      keys: new Set(),
+      progress: null,
+      racers: []
+    };
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(PROGRESS_KEY);
+        if (!raw) return { level: 1, exp: 0, credits: 0, races: 0, wins: 0, bestTime: null };
+        const parsed = JSON.parse(raw);
+        return {
+          level: Number(parsed.level) || 1,
+          exp: Number(parsed.exp) || 0,
+          credits: Number(parsed.credits) || 0,
+          races: Number(parsed.races) || 0,
+          wins: Number(parsed.wins) || 0,
+          bestTime: typeof parsed.bestTime === "number" ? parsed.bestTime : null
+        };
+      } catch {
+        return { level: 1, exp: 0, credits: 0, races: 0, wins: 0, bestTime: null };
       }
-    ];
+    }
 
-    const deck = document.getElementById("deck");
-    const counter = document.getElementById("counter");
-    const nextButton = document.getElementById("next");
-    const prevButton = document.getElementById("prev");
+    function saveProgress() {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(state.progress));
+    }
 
-    const staticChrome = () => `
-      <div class="grain"></div>
-      <div class="halo one"></div>
-      <div class="halo two"></div>
-    `;
-
-    function baseSlide(data, footerText = "") {
-      return `
-        ${staticChrome()}
-        <header class="topline">
-          <span>${data.kicker || "Slide"}</span>
-          <span class="chip">Single-file HTML</span>
-        </header>
-        <section class="content"></section>
-        <footer class="footer">
-          <span>${footerText}</span>
-          <span class="page-number"></span>
-        </footer>
+    function renderCareerStats() {
+      const p = state.progress;
+      careerStatsEl.innerHTML = `
+        <span>等级 <b>Lv.${p.level}</b></span>
+        <span>经验 <b>${p.exp}</b></span>
+        <span>金币 <b>${p.credits}</b></span>
+        <span>比赛 <b>${p.races}</b></span>
+        <span>胜场 <b>${p.wins}</b></span>
+        <span>最佳 <b>${p.bestTime ? p.bestTime.toFixed(2) + "s" : "--"}</b></span>
       `;
     }
 
-    function createSlideElement(data, footerText = "") {
-      const slide = document.createElement("section");
-      slide.className = "slide";
-      slide.innerHTML = baseSlide(data, footerText);
-      return slide;
+    function gainCareerProgress(winner) {
+      const p = state.progress;
+      p.races += 1;
+      const p1Won = winner.name === "P1";
+      if (p1Won) p.wins += 1;
+      const finish = state.racers.find((r) => r.name === "P1")?.finishTime;
+      if (finish && (!p.bestTime || finish < p.bestTime)) p.bestTime = finish;
+
+      const reward = 120 + (p1Won ? 80 : 20) + Math.max(0, 100 - Math.round(finish || 0) * 3);
+      p.credits += reward;
+      p.exp += 50 + (p1Won ? 40 : 15);
+      while (p.exp >= p.level * 120) {
+        p.exp -= p.level * 120;
+        p.level += 1;
+        addEvent(`生涯升级！当前 Lv.${p.level}`);
+      }
+      saveProgress();
+      renderCareerStats();
+      addEvent(`生涯奖励：+${reward} 金币`);
     }
 
-    function renderOutline() {
-      const slides = [];
+    function addEvent(message) {
+      state.events.unshift(message);
+      state.events = state.events.slice(0, 6);
+      eventsEl.innerHTML = state.events.map((text) => `<li>${text}</li>`).join("");
+    }
 
-      outline.forEach((entry) => {
-        if (entry.type === "title") {
-          const slide = createSlideElement(entry, entry.footer || "");
-          const content = slide.querySelector(".content");
-          content.innerHTML = `
-            <h1 class="title">${entry.title}</h1>
-            <p class="subtitle">${entry.subtitle}</p>
-          `;
-          slides.push(slide);
-          return;
+    function makeRacer(name, color, xLane, controls) {
+      return {
+        name,
+        color,
+        controls,
+        laneX: xLane,
+        speed: road.baseSpeed,
+        distance: 0,
+        boost: 100,
+        hp: 100,
+        finishTime: null,
+        flash: 0
+      };
+    }
+
+    function resetGame() {
+      if (!state.progress) state.progress = loadProgress();
+      state.running = true;
+      state.elapsed = 0;
+      state.curvePhase = 0;
+      state.roadOffset = 0;
+      state.resultAnnounced = false;
+      state.traffic = [];
+      state.sparks = [];
+      state.events = [];
+      state.racers = [
+        makeRacer("P1", "#3df2ff", -90, keyMap.p1),
+        ...(state.mode === 2 ? [makeRacer("P2", "#ff6f9f", 90, keyMap.p2)] : [makeRacer("AI", "#ffd166", 90, null)])
+      ];
+      const lvBonus = Math.min(40, state.progress.level * 4);
+      state.racers[0].speed += lvBonus;
+      state.racers[0].boost = Math.min(120, 100 + state.progress.level * 2);
+      addEvent(state.mode === 2 ? "双人模式开始：P1 vs P2" : "单人模式开始：P1 vs AI");
+      renderCareerStats();
+    }
+
+    function spawnTraffic() {
+      if (Math.random() > 0.045) return;
+      const lane = Math.floor(Math.random() * road.laneCount) - 1;
+      state.traffic.push({ laneX: lane * 170 + (Math.random() * 24 - 12), z: 1.2, speed: 110 + Math.random() * 110, w: 66, h: 110 });
+    }
+
+    function updateRacer(r, dt, idx) {
+      const ai = r.name === "AI";
+      let steer = 0;
+      let throttle = 0;
+      let brake = 0;
+      let boosting = false;
+
+      if (ai) {
+        const target = Math.sin(state.elapsed * 0.0016) * 150;
+        steer = Math.sign(target - r.laneX) * 0.7;
+        throttle = 1;
+      } else {
+        const keys = state.keys;
+        if (keys.has(r.controls.left)) steer -= 1;
+        if (keys.has(r.controls.right)) steer += 1;
+        if (keys.has(r.controls.gas)) throttle = 1;
+        if (keys.has(r.controls.brake)) brake = 1;
+        boosting = keys.has(r.controls.boost) && r.boost > 0;
+      }
+
+      const steerPower = Math.max(130, r.speed * 0.54);
+      r.laneX += steer * steerPower * dt;
+      r.laneX = Math.max(-240, Math.min(240, r.laneX));
+
+      r.speed += throttle * 180 * dt;
+      r.speed -= brake * 220 * dt;
+      r.speed -= 90 * dt;
+
+      if (boosting) {
+        r.speed += 340 * dt;
+        r.boost -= 26 * dt;
+      } else {
+        r.boost += 12 * dt;
+      }
+
+      r.boost = Math.max(0, Math.min(100, r.boost));
+      r.speed = Math.max(70, Math.min(road.maxSpeed + 80, r.speed));
+
+      const edge = 245;
+      if (Math.abs(r.laneX) > edge) {
+        r.speed *= 0.985;
+        r.hp -= 18 * dt;
+        r.flash = 0.1;
+      }
+
+      for (const car of state.traffic) {
+        const carX = car.laneX + state.roadOffset * 0.2;
+        const depthY = 130 + (1 - car.z) * 560;
+        const racerY = 550 + idx * 20;
+        if (Math.abs(r.laneX - carX) < 56 && Math.abs(racerY - depthY) < 56) {
+          r.speed *= 0.78;
+          r.hp -= 35 * dt;
+          r.flash = 0.18;
+          state.sparks.push({ x: canvas.width / 2 + r.laneX, y: racerY, t: 0.35 });
         }
+      }
 
-        if (entry.type === "agenda") {
-          const slide = createSlideElement(entry, "Agenda");
-          const content = slide.querySelector(".content");
-          content.innerHTML = `
-            <h2 class="title">${entry.title}</h2>
-            <div class="panel">
-              <ol class="list">
-                ${entry.items.map((item) => `<li>${item}</li>`).join("")}
-              </ol>
-            </div>
-          `;
-          slides.push(slide);
-          return;
-        }
+      r.hp = Math.max(0, r.hp);
+      r.distance += r.speed * dt;
 
-        if (entry.type === "content") {
-          const slide = createSlideElement(entry, "Content");
-          const content = slide.querySelector(".content");
+      if (!r.finishTime && r.distance >= road.finishDistance) {
+        r.finishTime = state.elapsed / 1000;
+        addEvent(`${r.name} 完赛，用时 ${r.finishTime.toFixed(2)}s`);
+      }
 
-          if (entry.cards) {
-            content.innerHTML = `
-              <h2 class="title">${entry.title}</h2>
-              <p class="subtitle">${entry.subtitle || ""}</p>
-              <div class="grid">
-                ${entry.cards
-                  .map(
-                    (card) => `
-                    <article class="card">
-                      <h3>${card.title}</h3>
-                      <p>${card.text}</p>
-                    </article>`
-                  )
-                  .join("")}
-              </div>
-            `;
-          } else {
-            content.innerHTML = `
-              <h2 class="title">${entry.title}</h2>
-              <p class="subtitle">${entry.subtitle || ""}</p>
-              <div class="panel">
-                <ul class="list">
-                  ${entry.items.map((item) => `<li>${item}</li>`).join("")}
-                </ul>
-              </div>
-            `;
-          }
+      if (r.flash > 0) r.flash -= dt;
+    }
 
-          slides.push(slide);
-          return;
-        }
+    function updateTraffic(dt) {
+      spawnTraffic();
+      for (const car of state.traffic) {
+        const avgSpeed = state.racers.reduce((a, b) => a + b.speed, 0) / state.racers.length;
+        car.z -= ((avgSpeed - car.speed) / 700) * dt;
+      }
+      state.traffic = state.traffic.filter((car) => car.z > -0.2 && car.z < 1.3);
+    }
 
-        if (entry.type === "long-list") {
-          const slide = createSlideElement(entry, "Long content");
-          const content = slide.querySelector(".content");
-          content.innerHTML = `
-            <h2 class="title">${entry.title}</h2>
-            <p class="subtitle">${entry.intro || ""}</p>
-            <div class="panel auto-split" data-split-source="${entry.title}"></div>
-            <p class="split-note">This section auto-paginates when content exceeds one slide.</p>
-          `;
+    function drawSkyline(horizon) {
+      const sky = ctx.createLinearGradient(0, 0, 0, horizon + 120);
+      sky.addColorStop(0, "#07112b");
+      sky.addColorStop(0.6, "#131838");
+      sky.addColorStop(1, "#191a2f");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, horizon + 120);
 
-          const splitRegion = slide.querySelector(".auto-split");
-          entry.items.forEach((item) => {
-            const node = document.createElement("div");
-            node.className = "split-item card";
-            node.innerHTML = `<p>${item}</p>`;
-            splitRegion.appendChild(node);
-          });
-
-          slides.push(slide);
-          return;
-        }
+      state.stars.forEach((star, i) => {
+        const alpha = 0.4 + Math.sin(state.elapsed * 0.0017 + star.twinkle + i) * 0.35;
+        ctx.fillStyle = `rgba(167, 211, 255, ${Math.max(0.08, alpha)})`;
+        ctx.fillRect(star.x, star.y, 2, 2);
       });
 
-      slides.forEach((slide) => deck.appendChild(slide));
+      for (let i = 0; i < 12; i++) {
+        const x = i * 120 + (Math.sin(state.curvePhase * 0.7 + i) * 18);
+        const w = 60 + (i % 3) * 14;
+        const h = 55 + (i % 4) * 28;
+        const y = horizon - h + 16;
+        const glow = ctx.createLinearGradient(0, y, 0, horizon + 20);
+        glow.addColorStop(0, "rgba(70, 225, 255, 0.25)");
+        glow.addColorStop(1, "rgba(30, 44, 88, 0.12)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(x, y, w, h + 12);
+        ctx.fillStyle = "rgba(16, 24, 52, 0.8)";
+        ctx.fillRect(x, y, w, h);
+      }
     }
 
-    function splitOverflowSlides() {
-      const initialSlides = Array.from(deck.querySelectorAll(".slide"));
-      initialSlides.forEach((slide) => {
-        const splitRegion = slide.querySelector(".auto-split");
-        if (!splitRegion) return;
+    function drawSpeedLines(intensity) {
+      const count = 24;
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + state.elapsed * 0.001;
+        const len = 60 + intensity * 120;
+        const x1 = canvas.width / 2 + Math.cos(angle) * 80;
+        const y1 = canvas.height * 0.68 + Math.sin(angle) * 40;
+        const x2 = x1 + Math.cos(angle) * len;
+        const y2 = y1 + Math.sin(angle) * len;
+        ctx.strokeStyle = `rgba(96, 214, 255, ${0.03 + intensity * 0.14})`;
+        ctx.lineWidth = 1 + intensity * 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+    }
 
-        const items = Array.from(splitRegion.children).map((child) => child.cloneNode(true));
-        splitRegion.innerHTML = "";
+    function drawRoad() {
+      const horizon = 190;
+      drawSkyline(horizon);
 
-        const continuationSlides = [slide];
-        let activeSlide = slide;
-        let activeRegion = splitRegion;
+      const stripeCount = 32;
+      for (let i = 0; i < stripeCount; i++) {
+        const t = i / stripeCount;
+        const y = horizon + t * (canvas.height - horizon);
+        const perspective = t * t;
+        const halfRoad = road.width * (0.16 + perspective * 0.82);
+        const curve = Math.sin(state.curvePhase + t * 2.1) * 120 * perspective + state.roadOffset;
+        const centerX = canvas.width / 2 + curve;
 
-        const regionIsOverflowing = () => {
-          const epsilon = 0.5;
-          return activeRegion.scrollHeight > activeRegion.clientHeight + epsilon;
-        };
+        ctx.fillStyle = i % 2 ? "#262a3d" : "#1f2333";
+        ctx.fillRect(centerX - halfRoad, y, halfRoad * 2, 26 + perspective * 16);
 
-        items.forEach((item, index) => {
-          activeRegion.appendChild(item);
+        const roadGlow = ctx.createLinearGradient(centerX - halfRoad, y, centerX + halfRoad, y);
+        roadGlow.addColorStop(0, "rgba(55, 90, 175, 0.08)");
+        roadGlow.addColorStop(0.5, "rgba(118, 235, 255, 0.12)");
+        roadGlow.addColorStop(1, "rgba(55, 90, 175, 0.08)");
+        ctx.fillStyle = roadGlow;
+        ctx.fillRect(centerX - halfRoad, y, halfRoad * 2, 22 + perspective * 14);
 
-          if (regionIsOverflowing()) {
-            activeRegion.removeChild(item);
+        ctx.fillStyle = "rgba(255,255,255,0.14)";
+        const laneW = (halfRoad * 2) / road.laneCount;
+        for (let l = 1; l < road.laneCount; l++) {
+          ctx.fillRect(centerX - halfRoad + laneW * l - 3, y + 3, 6, 18);
+        }
+      }
 
-            const continuation = createSlideElement(
-              { kicker: `${slide.querySelector('.topline span').textContent} • Continued` },
-              "Long content (continued)"
-            );
+      const grad = ctx.createLinearGradient(0, horizon, 0, canvas.height);
+      grad.addColorStop(0, "rgba(120,180,255,0.04)");
+      grad.addColorStop(1, "rgba(5,8,16,0.66)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, horizon, canvas.width, canvas.height - horizon);
 
-            continuation.querySelector(".content").innerHTML = `
-              <h2 class="title">${slide.querySelector('.title').textContent} <span style="color: var(--accent);">(cont.)</span></h2>
-              <p class="subtitle">Automatic continuation created because one slide could not fit all content.</p>
-              <div class="panel auto-split"></div>
-              <p class="split-note">Continuation ${continuationSlides.length + 1}</p>
-            `;
+      const speedIntensity = Math.min(1, (state.racers[0]?.speed || road.baseSpeed) / (road.maxSpeed + 80));
+      drawSpeedLines(speedIntensity);
+    }
 
-            deck.appendChild(continuation);
-            continuationSlides.push(continuation);
-            activeSlide = continuation;
-            activeRegion = continuation.querySelector(".auto-split");
-            activeRegion.appendChild(item);
-          }
+    function drawTraffic() {
+      for (const car of state.traffic) {
+        const y = 130 + (1 - car.z) * 560;
+        const scale = 0.4 + (1 - car.z) * 0.9;
+        const x = canvas.width / 2 + car.laneX + state.roadOffset * 0.2;
+        ctx.fillStyle = "#ffae44";
+        ctx.fillRect(x - (car.w * scale) / 2, y - (car.h * scale), car.w * scale, car.h * scale);
+        ctx.fillStyle = "rgba(20,8,0,0.4)";
+        ctx.fillRect(x - (car.w * scale) / 2, y - 16 * scale, car.w * scale, 16 * scale);
+      }
+    }
 
-          if (index === items.length - 1 && activeRegion.children.length === 0) {
-            const fallback = document.createElement("div");
-            fallback.className = "split-item card";
-            fallback.innerHTML = `<p>Content unavailable.</p>`;
-            activeRegion.appendChild(fallback);
-          }
-        });
+    function drawRacer(r, idx) {
+      const y = 560 + idx * 22;
+      const x = canvas.width / 2 + r.laneX;
+      const boostPulse = 0.35 + Math.sin(state.elapsed * 0.02) * 0.25;
+      ctx.save();
+      if (r.flash > 0) ctx.globalAlpha = 0.5 + Math.sin(state.elapsed * 0.03) * 0.5;
+
+      if (r.boost > 20) {
+        const flame = ctx.createRadialGradient(x, y + 64, 2, x, y + 68, 34);
+        flame.addColorStop(0, `rgba(61, 242, 255, ${0.3 + boostPulse})`);
+        flame.addColorStop(1, "rgba(61, 242, 255, 0)");
+        ctx.fillStyle = flame;
+        ctx.beginPath();
+        ctx.ellipse(x, y + 70, 30, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 66);
+      ctx.lineTo(x + 38, y - 20);
+      ctx.lineTo(x + 31, y + 62);
+      ctx.lineTo(x - 31, y + 62);
+      ctx.lineTo(x - 38, y - 20);
+      ctx.closePath();
+      ctx.fill();
+
+      const shine = ctx.createLinearGradient(x - 14, y - 50, x + 14, y + 50);
+      shine.addColorStop(0, "rgba(255,255,255,0.5)");
+      shine.addColorStop(1, "rgba(255,255,255,0.04)");
+      ctx.fillStyle = shine;
+      ctx.fillRect(x - 12, y - 40, 24, 84);
+
+      ctx.fillStyle = "#0b1020";
+      ctx.fillRect(x - 20, y - 28, 40, 32);
+      ctx.fillStyle = "#f8fdff";
+      ctx.fillRect(x - 22, y - 64, 9, 8);
+      ctx.fillRect(x + 13, y - 64, 9, 8);
+      ctx.restore();
+
+      const infoY = 34 + idx * 28;
+      ctx.fillStyle = "rgba(10,14,30,0.68)";
+      ctx.fillRect(18, infoY - 18, 410, 22);
+      ctx.fillStyle = "#ecf2ff";
+      ctx.font = "14px Segoe UI";
+      ctx.fillText(`${r.name} 速度:${Math.round(r.speed)} 里程:${Math.min(road.finishDistance, Math.round(r.distance))}m`, 24, infoY - 2);
+      ctx.fillStyle = "#26304f";
+      ctx.fillRect(250, infoY - 14, 100, 8);
+      ctx.fillRect(358, infoY - 14, 60, 8);
+      ctx.fillStyle = "#59e4ff";
+      ctx.fillRect(250, infoY - 14, r.boost, 8);
+      ctx.fillStyle = r.hp > 35 ? "#7ef2af" : "#ff5d86";
+      ctx.fillRect(358, infoY - 14, Math.max(0, r.hp * 0.6), 8);
+    }
+
+    function drawEffects(dt) {
+      state.sparks.forEach((s) => {
+        s.t -= dt;
+        ctx.fillStyle = `rgba(255, 90, 130, ${Math.max(0, s.t * 2.5)})`;
+        ctx.beginPath();
+        ctx.arc(s.x + (Math.random() - 0.5) * 40, s.y + (Math.random() - 0.5) * 40, 4 + Math.random() * 6, 0, Math.PI * 2);
+        ctx.fill();
       });
+      state.sparks = state.sparks.filter((s) => s.t > 0);
     }
 
-    let currentIndex = 0;
+    function drawPreview() {
+      const w = previewCanvas.width;
+      const h = previewCanvas.height;
+      pctx.clearRect(0, 0, w, h);
+      pctx.fillStyle = "#050712";
+      pctx.fillRect(0, 0, w, h);
 
-    function refreshSlides() {
-      const slides = Array.from(deck.querySelectorAll(".slide"));
-      slides.forEach((slide, index) => {
-        slide.classList.toggle("active", index === currentIndex);
-        const num = slide.querySelector(".page-number");
-        if (num) num.textContent = `${index + 1} / ${slides.length}`;
-      });
-      counter.textContent = `${currentIndex + 1} / ${slides.length}`;
-    }
+      const pad = 34;
+      const trackX = w * 0.5;
+      const trackW = 130;
+      pctx.fillStyle = "#1a2238";
+      pctx.fillRect(trackX - trackW / 2, pad, trackW, h - pad * 2);
+      pctx.strokeStyle = "rgba(155, 188, 248, 0.55)";
+      pctx.strokeRect(trackX - trackW / 2, pad, trackW, h - pad * 2);
 
-    function nextSlide() {
-      const slides = deck.querySelectorAll(".slide");
-      currentIndex = Math.min(currentIndex + 1, slides.length - 1);
-      refreshSlides();
-    }
+      pctx.strokeStyle = "rgba(237, 246, 255, 0.35)";
+      pctx.setLineDash([7, 6]);
+      pctx.beginPath();
+      pctx.moveTo(trackX, pad);
+      pctx.lineTo(trackX, h - pad);
+      pctx.stroke();
+      pctx.setLineDash([]);
 
-    function prevSlide() {
-      currentIndex = Math.max(currentIndex - 1, 0);
-      refreshSlides();
-    }
+      pctx.fillStyle = "#f8fdff";
+      pctx.font = "11px Segoe UI";
+      pctx.fillText("FINISH", trackX - 18, pad - 10);
+      pctx.fillStyle = "#fbff75";
+      pctx.fillRect(trackX - trackW / 2, pad - 2, trackW, 4);
 
-    nextButton.addEventListener("click", nextSlide);
-    prevButton.addEventListener("click", prevSlide);
-
-    window.addEventListener("keydown", (event) => {
-      if (["ArrowRight", "PageDown", " "].includes(event.key)) {
-        event.preventDefault();
-        nextSlide();
+      for (const r of state.racers) {
+        const progress = Math.min(1, r.distance / road.finishDistance);
+        const y = h - pad - progress * (h - pad * 2);
+        const x = trackX + (r.laneX / 240) * ((trackW - 20) / 2);
+        pctx.fillStyle = r.color;
+        pctx.beginPath();
+        pctx.arc(x, y, 7, 0, Math.PI * 2);
+        pctx.fill();
+        pctx.fillStyle = "#d9e5ff";
+        pctx.fillText(r.name, x + 10, y + 4);
       }
-      if (["ArrowLeft", "PageUp"].includes(event.key)) {
-        event.preventDefault();
-        prevSlide();
+    }
+
+    function drawFinishBanner(text) {
+      ctx.fillStyle = "rgba(4, 8, 18, 0.76)";
+      ctx.fillRect(220, 260, 840, 200);
+      ctx.strokeStyle = "rgba(131,240,255,0.6)";
+      ctx.strokeRect(220, 260, 840, 200);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#f2f6ff";
+      ctx.font = "600 50px Segoe UI";
+      ctx.fillText(text, canvas.width / 2, 340);
+      ctx.font = "24px Segoe UI";
+      ctx.fillStyle = "#9db0da";
+      ctx.fillText("按 R 重新开始", canvas.width / 2, 398);
+      ctx.textAlign = "left";
+    }
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now;
+
+      if (state.running) {
+        state.elapsed += dt * 1000;
+        state.curvePhase += dt * 1.45;
+        state.roadOffset = Math.sin(state.curvePhase * 0.75) * 50;
+
+        state.racers.forEach((r, idx) => updateRacer(r, dt, idx));
+        updateTraffic(dt);
+
+        if (state.racers.some((r) => r.hp <= 0)) state.running = false;
+        if (state.racers.every((r) => r.finishTime)) state.running = false;
       }
-      if (event.key.toLowerCase() === "home") {
-        currentIndex = 0;
-        refreshSlides();
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawRoad();
+      drawTraffic();
+      state.racers.forEach(drawRacer);
+      drawEffects(dt);
+      drawPreview();
+
+      if (!state.running) {
+        const sorted = [...state.racers].sort((a, b) => (b.hp <= 0) - (a.hp <= 0) || (a.finishTime ?? 999) - (b.finishTime ?? 999));
+        const winner = sorted[0];
+        const winText = winner.hp <= 0 ? "比赛结束：全部撞毁" : `冠军：${winner.name} (${winner.finishTime ? winner.finishTime.toFixed(2) + "s" : "完赛"})`;
+        drawFinishBanner(winText);
+        if (!state.resultAnnounced) {
+          gainCareerProgress(winner);
+          addEvent(winText);
+          state.resultAnnounced = true;
+        }
       }
-      if (event.key.toLowerCase() === "end") {
-        currentIndex = deck.querySelectorAll(".slide").length - 1;
-        refreshSlides();
+
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (e) => {
+      state.keys.add(e.code);
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Space"].includes(e.code)) e.preventDefault();
+      if (e.code === "KeyR") {
+        resetGame();
+        addEvent("手动重开比赛");
       }
     });
 
-    renderOutline();
-    splitOverflowSlides();
-    refreshSlides();
+    window.addEventListener("keyup", (e) => state.keys.delete(e.code));
+
+    const oneBtn = document.getElementById("onePlayer");
+    const twoBtn = document.getElementById("twoPlayer");
+
+    function setMode(mode) {
+      state.mode = mode;
+      oneBtn.classList.toggle("active", mode === 1);
+      twoBtn.classList.toggle("active", mode === 2);
+      resetGame();
+    }
+
+    oneBtn.addEventListener("click", () => setMode(1));
+    twoBtn.addEventListener("click", () => setMode(2));
+    resetProgressBtn.addEventListener("click", () => {
+      state.progress = { level: 1, exp: 0, credits: 0, races: 0, wins: 0, bestTime: null };
+      saveProgress();
+      renderCareerStats();
+      addEvent("已重置生涯进度");
+    });
+
+    state.progress = loadProgress();
+    renderCareerStats();
+    resetGame();
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
