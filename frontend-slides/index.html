@@ -29,7 +29,7 @@
     }
 
     .wrap {
-      width: min(1200px, 94vw);
+      width: min(1380px, 96vw);
       display: grid;
       gap: 14px;
     }
@@ -50,13 +50,79 @@
     .hud strong { color: var(--accent); }
     .tips { color: #adc0ef; font-size: 13px; }
 
-    canvas {
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(720px, 1fr) 320px;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .panel {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(7, 10, 21, 0.82);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 10px;
+      padding: 10px;
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.32);
+    }
+
+    .panel h3 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+      color: #c8d4f9;
+    }
+
+    .preview-note {
+      font-size: 12px;
+      color: #95a7d6;
+      line-height: 1.45;
+    }
+
+    .track-preview {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(132, 169, 236, 0.35);
+      background: #05070f;
+      min-height: 210px;
+    }
+
+    .event-list {
+      margin: 0;
+      padding: 8px;
+      border: 1px solid rgba(132, 169, 236, 0.25);
+      border-radius: 10px;
+      background: rgba(10, 14, 29, 0.7);
+      color: #cad7ff;
+      font-size: 12px;
+      line-height: 1.4;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .event-list li {
+      border-left: 2px solid rgba(98, 232, 255, 0.5);
+      padding-left: 8px;
+      opacity: 0.95;
+    }
+
+    .game-canvas {
       width: 100%;
       aspect-ratio: 16 / 9;
       border-radius: 16px;
       border: 1px solid var(--line);
       background: #03040a;
       box-shadow: 0 20px 55px rgba(0, 0, 0, 0.48);
+    }
+
+    @media (max-width: 1100px) {
+      .stage {
+        grid-template-columns: 1fr;
+      }
     }
 
     .buttons {
@@ -92,12 +158,23 @@
       </div>
       <div class="tips">P1: WASD / Shift 氮气 · P2: ↑↓←→ / Enter 氮气 · R 重开</div>
     </div>
-    <canvas id="game" width="1280" height="720"></canvas>
+    <div class="stage">
+      <canvas id="game" class="game-canvas" width="1280" height="720"></canvas>
+      <aside class="panel">
+        <h3>右侧实时预览</h3>
+        <div class="preview-note">显示赛道进度预览（终点线在顶部）与最近赛况提示。</div>
+        <canvas id="preview" class="track-preview" width="300" height="260"></canvas>
+        <ul id="events" class="event-list"></ul>
+      </aside>
+    </div>
   </div>
 
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
+    const previewCanvas = document.getElementById("preview");
+    const pctx = previewCanvas.getContext("2d");
+    const eventsEl = document.getElementById("events");
 
     const keyMap = {
       p1: { left: "KeyA", right: "KeyD", gas: "KeyW", brake: "KeyS", boost: "ShiftLeft" },
@@ -112,11 +189,19 @@
       elapsed: 0,
       curvePhase: 0,
       roadOffset: 0,
+      resultAnnounced: false,
       traffic: [],
       sparks: [],
+      events: [],
       keys: new Set(),
       racers: []
     };
+
+    function addEvent(message) {
+      state.events.unshift(message);
+      state.events = state.events.slice(0, 6);
+      eventsEl.innerHTML = state.events.map((text) => `<li>${text}</li>`).join("");
+    }
 
     function makeRacer(name, color, xLane, controls) {
       return {
@@ -138,12 +223,15 @@
       state.elapsed = 0;
       state.curvePhase = 0;
       state.roadOffset = 0;
+      state.resultAnnounced = false;
       state.traffic = [];
       state.sparks = [];
+      state.events = [];
       state.racers = [
         makeRacer("P1", "#3df2ff", -90, keyMap.p1),
         ...(state.mode === 2 ? [makeRacer("P2", "#ff6f9f", 90, keyMap.p2)] : [makeRacer("AI", "#ffd166", 90, null)])
       ];
+      addEvent(state.mode === 2 ? "双人模式开始：P1 vs P2" : "单人模式开始：P1 vs AI");
     }
 
     function spawnTraffic() {
@@ -214,6 +302,7 @@
 
       if (!r.finishTime && r.distance >= road.finishDistance) {
         r.finishTime = state.elapsed / 1000;
+        addEvent(`${r.name} 完赛，用时 ${r.finishTime.toFixed(2)}s`);
       }
 
       if (r.flash > 0) r.flash -= dt;
@@ -308,6 +397,48 @@
       state.sparks = state.sparks.filter((s) => s.t > 0);
     }
 
+    function drawPreview() {
+      const w = previewCanvas.width;
+      const h = previewCanvas.height;
+      pctx.clearRect(0, 0, w, h);
+      pctx.fillStyle = "#050712";
+      pctx.fillRect(0, 0, w, h);
+
+      const pad = 34;
+      const trackX = w * 0.5;
+      const trackW = 130;
+      pctx.fillStyle = "#1a2238";
+      pctx.fillRect(trackX - trackW / 2, pad, trackW, h - pad * 2);
+      pctx.strokeStyle = "rgba(155, 188, 248, 0.55)";
+      pctx.strokeRect(trackX - trackW / 2, pad, trackW, h - pad * 2);
+
+      pctx.strokeStyle = "rgba(237, 246, 255, 0.35)";
+      pctx.setLineDash([7, 6]);
+      pctx.beginPath();
+      pctx.moveTo(trackX, pad);
+      pctx.lineTo(trackX, h - pad);
+      pctx.stroke();
+      pctx.setLineDash([]);
+
+      pctx.fillStyle = "#f8fdff";
+      pctx.font = "11px Segoe UI";
+      pctx.fillText("FINISH", trackX - 18, pad - 10);
+      pctx.fillStyle = "#fbff75";
+      pctx.fillRect(trackX - trackW / 2, pad - 2, trackW, 4);
+
+      for (const r of state.racers) {
+        const progress = Math.min(1, r.distance / road.finishDistance);
+        const y = h - pad - progress * (h - pad * 2);
+        const x = trackX + (r.laneX / 240) * ((trackW - 20) / 2);
+        pctx.fillStyle = r.color;
+        pctx.beginPath();
+        pctx.arc(x, y, 7, 0, Math.PI * 2);
+        pctx.fill();
+        pctx.fillStyle = "#d9e5ff";
+        pctx.fillText(r.name, x + 10, y + 4);
+      }
+    }
+
     function drawFinishBanner(text) {
       ctx.fillStyle = "rgba(4, 8, 18, 0.76)";
       ctx.fillRect(220, 260, 840, 200);
@@ -345,12 +476,17 @@
       drawTraffic();
       state.racers.forEach(drawRacer);
       drawEffects(dt);
+      drawPreview();
 
       if (!state.running) {
         const sorted = [...state.racers].sort((a, b) => (b.hp <= 0) - (a.hp <= 0) || (a.finishTime ?? 999) - (b.finishTime ?? 999));
         const winner = sorted[0];
         const winText = winner.hp <= 0 ? "比赛结束：全部撞毁" : `冠军：${winner.name} (${winner.finishTime ? winner.finishTime.toFixed(2) + "s" : "完赛"})`;
         drawFinishBanner(winText);
+        if (!state.resultAnnounced) {
+          addEvent(winText);
+          state.resultAnnounced = true;
+        }
       }
 
       requestAnimationFrame(loop);
@@ -359,7 +495,10 @@
     window.addEventListener("keydown", (e) => {
       state.keys.add(e.code);
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Space"].includes(e.code)) e.preventDefault();
-      if (e.code === "KeyR") resetGame();
+      if (e.code === "KeyR") {
+        resetGame();
+        addEvent("手动重开比赛");
+      }
     });
 
     window.addEventListener("keyup", (e) => state.keys.delete(e.code));
