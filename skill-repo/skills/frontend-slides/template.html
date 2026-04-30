@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reusable Frontend Slides Template</title>
+  <style>
+    :root {
+      --bg: radial-gradient(circle at 15% 8%, #223f6f 0%, #111833 45%, #090b13 100%);
+      --panel: rgba(255, 255, 255, 0.09);
+      --text: #eff3ff;
+      --muted: #b8c5e9;
+      --accent: #7de8ff;
+      --line: rgba(255, 255, 255, 0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #04060d;
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #deck { width: 100%; height: 100%; position: relative; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      padding: clamp(24px, 4vw, 60px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      background: var(--bg);
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: 220ms ease;
+    }
+
+    .slide.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    .topline, .footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.9rem; }
+
+    .content {
+      min-height: 0;
+      display: grid;
+      align-content: center;
+      gap: 14px;
+    }
+
+    h1, h2, p { margin: 0; }
+    h1, h2 { line-height: 1.04; letter-spacing: -0.03em; max-width: 14ch; }
+    h1 { font-size: clamp(2rem, 5vw, 4.2rem); }
+    h2 { font-size: clamp(1.8rem, 4.2vw, 3.2rem); }
+    p { color: var(--muted); max-width: 62ch; line-height: 1.45; }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel);
+      backdrop-filter: blur(7px);
+      padding: clamp(14px, 2vw, 24px);
+      overflow: hidden;
+    }
+
+    .list { margin: 0; padding: 0; display: grid; gap: 10px; }
+    .list li { list-style: none; padding-left: 1.2em; position: relative; }
+    .list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.52em;
+      width: 0.45em;
+      height: 0.45em;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .auto-split {
+      min-height: 0;
+      overflow: hidden;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .controls {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px;
+      background: rgba(8, 12, 22, 0.72);
+    }
+
+    .controls button { width: 36px; height: 36px; border-radius: 999px; border: 0; cursor: pointer; }
+    .controls span { min-width: 64px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <main id="deck"></main>
+  <div class="controls">
+    <button id="prev" aria-label="Previous">←</button>
+    <span id="count">1 / 1</span>
+    <button id="next" aria-label="Next">→</button>
+  </div>
+
+  <script>
+    // Edit this outline to build your deck.
+    const outline = [
+      { type: "title", kicker: "Deck", title: "Presentation title", subtitle: "Subtitle or framing sentence." },
+      { type: "agenda", kicker: "Agenda", title: "Topics", items: ["Topic A", "Topic B", "Topic C"] },
+      {
+        type: "long-list",
+        kicker: "Details",
+        title: "Long section",
+        intro: "Add many items here; the script splits overflowing content into continuation slides.",
+        items: ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5", "Point 6", "Point 7", "Point 8", "Point 9", "Point 10"]
+      }
+    ];
+
+    const deck = document.getElementById("deck");
+    const count = document.getElementById("count");
+    let active = 0;
+
+    function makeShell(kicker = "Slide", footer = "") {
+      const slide = document.createElement("section");
+      slide.className = "slide";
+      slide.innerHTML = `
+        <header class="topline"><span>${kicker}</span><span>single-file html</span></header>
+        <section class="content"></section>
+        <footer class="footer"><span>${footer}</span><span class="num"></span></footer>
+      `;
+      return slide;
+    }
+
+    function render() {
+      outline.forEach((entry) => {
+        const slide = makeShell(entry.kicker || "Slide", entry.type);
+        const content = slide.querySelector(".content");
+
+        if (entry.type === "title") {
+          content.innerHTML = `<h1>${entry.title}</h1><p>${entry.subtitle || ""}</p>`;
+        } else if (entry.type === "agenda") {
+          content.innerHTML = `<h2>${entry.title}</h2><div class="panel"><ol class="list">${entry.items.map((x) => `<li>${x}</li>`).join("")}</ol></div>`;
+        } else if (entry.type === "long-list") {
+          content.innerHTML = `<h2>${entry.title}</h2><p>${entry.intro || ""}</p><div class="panel auto-split"></div>`;
+          const region = content.querySelector(".auto-split");
+          entry.items.forEach((item) => {
+            const row = document.createElement("div");
+            row.className = "panel";
+            row.textContent = item;
+            region.appendChild(row);
+          });
+        }
+
+        deck.appendChild(slide);
+      });
+    }
+
+    function splitOverflow() {
+      [...deck.querySelectorAll(".slide")].forEach((slide) => {
+        const region = slide.querySelector(".auto-split");
+        if (!region) return;
+
+        const items = [...region.children].map((node) => node.cloneNode(true));
+        region.innerHTML = "";
+        let target = region;
+
+        items.forEach((item) => {
+          target.appendChild(item);
+          if (target.scrollHeight > target.clientHeight + 1) {
+            target.removeChild(item);
+            const continuation = makeShell(`${slide.querySelector('.topline span').textContent} • Continued`, "continued");
+            continuation.querySelector(".content").innerHTML = `<h2>${slide.querySelector('h2').textContent} (cont.)</h2><div class="panel auto-split"></div>`;
+            deck.appendChild(continuation);
+            target = continuation.querySelector(".auto-split");
+            target.appendChild(item);
+          }
+        });
+      });
+    }
+
+    function paint() {
+      const slides = [...deck.querySelectorAll(".slide")];
+      slides.forEach((s, i) => {
+        s.classList.toggle("active", i === active);
+        s.querySelector(".num").textContent = `${i + 1} / ${slides.length}`;
+      });
+      count.textContent = `${active + 1} / ${slides.length}`;
+    }
+
+    function next() { active = Math.min(active + 1, deck.querySelectorAll(".slide").length - 1); paint(); }
+    function prev() { active = Math.max(active - 1, 0); paint(); }
+
+    document.getElementById("next").addEventListener("click", next);
+    document.getElementById("prev").addEventListener("click", prev);
+    window.addEventListener("keydown", (e) => {
+      if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); next(); }
+      if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); prev(); }
+    });
+
+    render();
+    splitOverflow();
+    paint();
+  </script>
+</body>
+</html>
