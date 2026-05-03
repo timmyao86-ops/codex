@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bolt 7 滑板车分析</title>
+  <style>
+    :root {
+      --bg: radial-gradient(circle at 14% 8%, #1f3d5c 0, #121a33 42%, #080b14 100%);
+      --panel: linear-gradient(160deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04));
+      --text: #eef3ff;
+      --muted: #b9c5e6;
+      --accent: #79e7ff;
+      --accent-2: #b790ff;
+      --line: rgba(255, 255, 255, 0.16);
+      --shadow: 0 24px 56px rgba(0, 0, 0, 0.32);
+      --slide-padding: clamp(24px, 4.2vw, 62px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #05070f;
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    .deck { width: 100%; height: 100%; position: relative; isolation: isolate; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      padding: var(--slide-padding);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: clamp(14px, 2vw, 28px);
+      background: var(--bg);
+      overflow: hidden;
+      opacity: 0;
+      transform: scale(0.985);
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 240ms ease;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+
+    .grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.055) 0.65px, transparent 0.65px);
+      background-size: 3px 3px;
+      mix-blend-mode: soft-light;
+      opacity: 0.26;
+    }
+
+    .glow {
+      position: absolute;
+      z-index: -1;
+      border-radius: 999px;
+      filter: blur(66px);
+      pointer-events: none;
+    }
+
+    .glow.a {
+      width: 34vw;
+      aspect-ratio: 1;
+      top: -10vw;
+      right: -4vw;
+      background: rgba(121, 231, 255, 0.3);
+    }
+
+    .glow.b {
+      width: 27vw;
+      aspect-ratio: 1;
+      bottom: -11vw;
+      left: -5vw;
+      background: rgba(183, 144, 255, 0.22);
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-size: clamp(12px, 1.1vw, 15px);
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(8, 12, 26, 0.36);
+      padding: 0.4rem 0.8rem;
+      font-weight: 700;
+      font-size: 0.75em;
+    }
+
+    .content {
+      min-height: 0;
+      display: grid;
+      align-content: center;
+      gap: clamp(12px, 1.8vw, 24px);
+    }
+
+    h1, h2, p { margin: 0; }
+
+    h1, h2 {
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+      max-width: 15ch;
+      text-wrap: balance;
+    }
+
+    h1 { font-size: clamp(2rem, 5vw, 4.4rem); }
+    h2 { font-size: clamp(1.8rem, 4.2vw, 3.2rem); }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 66ch;
+      line-height: 1.45;
+      font-size: clamp(1rem, 1.5vw, 1.32rem);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(7px);
+      overflow: hidden;
+    }
+
+    .list {
+      margin: 0;
+      padding: clamp(16px, 2.2vw, 30px);
+      display: grid;
+      gap: 10px;
+    }
+
+    .list li {
+      list-style: none;
+      position: relative;
+      padding-left: 1.25em;
+      line-height: 1.34;
+      font-size: clamp(1rem, 1.7vw, 1.38rem);
+    }
+
+    .list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.52em;
+      width: 0.5em;
+      height: 0.5em;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(12px, 1.5vw, 20px);
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: clamp(14px, 1.7vw, 24px);
+      background: rgba(11, 17, 34, 0.56);
+      display: grid;
+      gap: 8px;
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: clamp(1.08rem, 1.8vw, 1.5rem);
+      line-height: 1.2;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.42;
+      font-size: clamp(0.94rem, 1.15vw, 1.06rem);
+    }
+
+    .footer {
+      min-height: 30px;
+      border-top: 1px solid var(--line);
+      padding-top: 11px;
+      color: var(--muted);
+      font-size: clamp(0.8rem, 1vw, 0.96rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .auto-split {
+      min-height: 0;
+      overflow: hidden;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+
+    .split-note {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .controls {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+      padding: 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(8, 12, 24, 0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    .controls button {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 0;
+      font-weight: 800;
+      color: var(--text);
+      background: linear-gradient(140deg, rgba(121, 231, 255, 0.3), rgba(183, 144, 255, 0.35));
+      cursor: pointer;
+    }
+
+    .controls span {
+      min-width: 68px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.84rem;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .controls { left: 16px; right: 16px; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <main id="deck" class="deck"></main>
+  <div class="controls">
+    <button id="prev" aria-label="上一页">←</button>
+    <span id="counter">1 / 1</span>
+    <button id="next" aria-label="下一页">→</button>
+  </div>
+
+  <script>
+    const outline = [
+      {
+        type: "title",
+        kicker: "Bolt 7 分析",
+        title: "Bolt 7 电动滑板车：产品与商业可行性分析",
+        subtitle: "目标：给出面向共享出行/城市通勤场景的定位、风险与 90 天落地建议。",
+        footer: "分析稿 · 2026-04"
+      },
+      {
+        type: "agenda",
+        kicker: "目录",
+        title: "分析结构",
+        items: [
+          "场景与用户：Bolt 7 解决什么问题",
+          "产品维度：体验、可靠性、维护效率",
+          "业务维度：单位经济模型与规模化约束",
+          "竞争与差异化：可持续优势在哪里",
+          "90 天执行路径：先做什么，再做什么"
+        ]
+      },
+      {
+        type: "content",
+        kicker: "用户价值",
+        title: "Bolt 7 的核心价值假设",
+        subtitle: "以下为分析框架，不绑定单一市场参数；可按城市数据替换具体数字。",
+        cards: [
+          {
+            title: "通勤效率",
+            text: "在 1-5km 短途内，降低步行与等车时间，填补地铁/公交最后一公里空白。"
+          },
+          {
+            title: "可获得性",
+            text: "通过网格化投放和热区调度，让用户在高峰时段仍能在短时间内找到可用车辆。"
+          },
+          {
+            title: "可预期成本",
+            text: "对用户而言，计费透明比绝对低价更关键；需控制启动费、里程费和等待费心智负担。"
+          },
+          {
+            title: "安全与信任",
+            text: "稳定刹车、夜间可见性、低故障率决定复购；事故处理流程是品牌信任分水岭。"
+          }
+        ]
+      },
+      {
+        type: "content",
+        kicker: "业务评估",
+        title: "运营与经济模型看点",
+        subtitle: "共享滑板车不是单点硬件问题，而是“硬件 + 调度 + 维护 + 监管”系统工程。",
+        items: [
+          "收入端：日均单车订单量、平均骑行时长、收费结构弹性。",
+          "成本端：折旧、换电/充电、维修、运维人力、城市合规成本。",
+          "效率端：可用率、故障关闭时长、无效调度比例、热点命中率。",
+          "风险端：破坏与盗损、极端天气、政策收紧、舆情事件传导。"
+        ]
+      },
+      {
+        type: "content",
+        kicker: "竞争定位",
+        title: "Bolt 7 可能的差异化抓手",
+        subtitle: "建议把差异化建立在可复制的运营能力上，而非单次营销活动。",
+        cards: [
+          {
+            title: "体验差异化",
+            text: "上手快、起步稳、刹车线性；新手 3 分钟内完成首次完整骑行闭环。"
+          },
+          {
+            title: "可靠性差异化",
+            text: "高频故障部件模块化，缩短维修时长；通过远程诊断降低“路上坏车”发生率。"
+          },
+          {
+            title: "调度差异化",
+            text: "结合时段、天气、活动预测进行前置投放，减少早晚高峰缺车与堆车。"
+          },
+          {
+            title: "合规差异化",
+            text: "主动配合停车秩序管理与禁行区策略，降低城市治理摩擦，换取长期运营空间。"
+          }
+        ]
+      },
+      {
+        type: "long-list",
+        kicker: "90 天计划",
+        title: "Bolt 7 90 天执行建议（自动拆分示例）",
+        intro: "以下行动项故意拉长，演示单页容纳不下时自动拆成续页。",
+        items: [
+          "第 1 周：明确北极星指标（每车日订单、可用率、故障关闭时长）。",
+          "第 1 周：建立统一事件分级机制（安全事件、故障事件、客诉事件）。",
+          "第 1-2 周：梳理前 10 类高频故障并制定标准维修 SOP。",
+          "第 2 周：上线基础远程健康检查脚本（电池、刹车、通讯状态）。",
+          "第 2-3 周：在 1 个样板城市做热区投放 A/B 实验。",
+          "第 3 周：对比不同计费方案对完单率与毛利的影响。",
+          "第 3-4 周：优化晚高峰回仓与次日早高峰前置补车节奏。",
+          "第 4 周：上线城市级停车秩序评分，关联运维团队考核。",
+          "第 4-5 周：推出新手引导页（安全提示 + 责任说明 + 停车示例）。",
+          "第 5 周：把事故处理流程产品化，缩短用户投诉响应时长。",
+          "第 5-6 周：建立坏车闭环看板（发现 -> 下线 -> 维修 -> 回投）。",
+          "第 6 周：复盘峰值时段供应缺口并更新调度预测参数。",
+          "第 6-7 周：定义城市扩张门槛（合规评分、单位经济、运维承载）。",
+          "第 7-8 周：打通客服、运维、策略三方周会机制，减少信息断层。",
+          "第 8-9 周：制定舆情预案模板，覆盖事故、停放、价格争议场景。",
+          "第 9-10 周：形成董事会版月报模板（增长、效率、风险三视角）。",
+          "第 10-11 周：收敛低 ROI 运营动作，把资源集中到高杠杆区域。",
+          "第 11-12 周：完成第二轮策略迭代并确定下一季度目标。"
+        ]
+      },
+      {
+        type: "content",
+        kicker: "结论",
+        title: "一句话结论",
+        subtitle: "Bolt 7 的胜负手，不在“是否能造出车”，而在“能否长期稳定地把车管好、调好、合规跑好”。",
+        items: [
+          "短期看执行：先把可用率与故障闭环做扎实。",
+          "中期看模型：把单车经济模型跑通并经受季节性波动。",
+          "长期看壁垒：把城市协同与运营系统沉淀为可复制能力。"
+        ]
+      }
+    ];
+
+    const deck = document.getElementById("deck");
+    const counter = document.getElementById("counter");
+    const nextButton = document.getElementById("next");
+    const prevButton = document.getElementById("prev");
+    let currentIndex = 0;
+
+    const chrome = () => `
+      <div class="grain"></div>
+      <div class="glow a"></div>
+      <div class="glow b"></div>
+    `;
+
+    function makeSlide(data, footerText = "") {
+      const slide = document.createElement("section");
+      slide.className = "slide";
+      slide.innerHTML = `
+        ${chrome()}
+        <header class="topline">
+          <span>${data.kicker || "Slide"}</span>
+          <span class="badge">single-file html</span>
+        </header>
+        <section class="content"></section>
+        <footer class="footer"><span>${footerText}</span><span class="page"></span></footer>
+      `;
+      return slide;
+    }
+
+    function renderOutline() {
+      const built = [];
+      outline.forEach((entry) => {
+        if (entry.type === "title") {
+          const s = makeSlide(entry, entry.footer || "");
+          s.querySelector(".content").innerHTML = `<h1>${entry.title}</h1><p class="subtitle">${entry.subtitle || ""}</p>`;
+          built.push(s);
+          return;
+        }
+
+        if (entry.type === "agenda") {
+          const s = makeSlide(entry, "Agenda");
+          s.querySelector(".content").innerHTML = `<h2>${entry.title}</h2><div class="panel"><ol class="list">${entry.items.map((i) => `<li>${i}</li>`).join("")}</ol></div>`;
+          built.push(s);
+          return;
+        }
+
+        if (entry.type === "content") {
+          const s = makeSlide(entry, "Analysis");
+          if (entry.cards) {
+            s.querySelector(".content").innerHTML = `
+              <h2>${entry.title}</h2>
+              <p class="subtitle">${entry.subtitle || ""}</p>
+              <div class="grid">${entry.cards.map((c) => `<article class="card"><h3>${c.title}</h3><p>${c.text}</p></article>`).join("")}</div>
+            `;
+          } else {
+            s.querySelector(".content").innerHTML = `
+              <h2>${entry.title}</h2>
+              <p class="subtitle">${entry.subtitle || ""}</p>
+              <div class="panel"><ul class="list">${entry.items.map((i) => `<li>${i}</li>`).join("")}</ul></div>
+            `;
+          }
+          built.push(s);
+          return;
+        }
+
+        if (entry.type === "long-list") {
+          const s = makeSlide(entry, "Execution");
+          s.querySelector(".content").innerHTML = `
+            <h2>${entry.title}</h2>
+            <p class="subtitle">${entry.intro || ""}</p>
+            <div class="panel auto-split"></div>
+            <p class="split-note">内容过长时将自动分页，不会在单页内部滚动。</p>
+          `;
+          const area = s.querySelector(".auto-split");
+          entry.items.forEach((item) => {
+            const node = document.createElement("div");
+            node.className = "card split-item";
+            node.innerHTML = `<p>${item}</p>`;
+            area.appendChild(node);
+          });
+          built.push(s);
+        }
+      });
+
+      built.forEach((slide) => deck.appendChild(slide));
+    }
+
+    function splitOverflowSlides() {
+      const original = [...deck.querySelectorAll(".slide")];
+      original.forEach((slide) => {
+        const region = slide.querySelector(".auto-split");
+        if (!region) return;
+
+        const items = [...region.children].map((x) => x.cloneNode(true));
+        region.innerHTML = "";
+
+        let target = region;
+        let continuationCount = 1;
+
+        items.forEach((item) => {
+          target.appendChild(item);
+          if (target.scrollHeight > target.clientHeight + 1) {
+            target.removeChild(item);
+
+            const cont = makeSlide({ kicker: `${slide.querySelector('.topline span').textContent} · Continued` }, "Execution (cont.)");
+            cont.querySelector(".content").innerHTML = `
+              <h2>${slide.querySelector('h2').textContent} <span style="color: var(--accent);">(续)</span></h2>
+              <p class="subtitle">由于内容较长，自动拆分为续页。</p>
+              <div class="panel auto-split"></div>
+              <p class="split-note">续页 ${++continuationCount}</p>
+            `;
+
+            deck.appendChild(cont);
+            target = cont.querySelector(".auto-split");
+            target.appendChild(item);
+          }
+        });
+      });
+    }
+
+    function refresh() {
+      const slides = [...deck.querySelectorAll(".slide")];
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === currentIndex);
+        slide.querySelector(".page").textContent = `${i + 1} / ${slides.length}`;
+      });
+      counter.textContent = `${currentIndex + 1} / ${slides.length}`;
+    }
+
+    function nextSlide() {
+      currentIndex = Math.min(currentIndex + 1, deck.querySelectorAll(".slide").length - 1);
+      refresh();
+    }
+
+    function prevSlide() {
+      currentIndex = Math.max(currentIndex - 1, 0);
+      refresh();
+    }
+
+    nextButton.addEventListener("click", nextSlide);
+    prevButton.addEventListener("click", prevSlide);
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowRight", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        nextSlide();
+      }
+      if (["ArrowLeft", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        prevSlide();
+      }
+      if (event.key.toLowerCase() === "home") {
+        currentIndex = 0;
+        refresh();
+      }
+      if (event.key.toLowerCase() === "end") {
+        currentIndex = deck.querySelectorAll(".slide").length - 1;
+        refresh();
+      }
+    });
+
+    renderOutline();
+    splitOverflowSlides();
+    refresh();
+  </script>
+</body>
+</html>
